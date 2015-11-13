@@ -1,0 +1,110 @@
+// This is for a Lego Mindstorms NXT robot
+// Necessary motor features:
+//   * Two motors with wheels
+//   * Two light sensors between the wheels, ideally on the axis
+//   * A start button
+
+
+
+// some notes/frequencies
+#define A 440
+#define F 349
+#define CH 523
+#define EH 659
+#define GS 415
+#define FH 698
+
+
+inline int min(int a, int b){
+	if(a < b) return a;
+	return b;
+}
+
+
+inline int max(int a, int b){
+	if(a > b) return a;
+	return b;
+}
+
+
+inline void playtone(int f, int t) {
+	PlayTone((f*2)/3,400); Wait(t);
+}
+
+
+// 
+task music(){
+	playtone(A,500);
+	playtone(A,500);
+	playtone(A,500);
+	playtone(F,350);
+	playtone(CH,150);
+
+	playtone(A,500);
+	playtone(F,350);
+	playtone(CH,150);
+	playtone(A,650);
+
+	Wait(500);
+
+	playtone(EH, 500);
+	playtone(EH, 500);
+	playtone(EH, 500);  
+	playtone(FH, 350);
+	playtone(CH, 150);
+	playtone(GS, 500);
+	playtone(F, 350);
+	playtone(CH, 150);
+	playtone(A, 650);
+
+	Wait(500);
+}
+
+
+
+task movement(){
+	int sf = 2; // speedup factor
+	int spd = 25*sf; // motor speed
+	int s1o, s2o; // sensor offsets
+
+	// Line Sensors
+	SetSensorLight(IN_1);
+	SetSensorLight(IN_2);
+	// Start Button
+	SetSensorTouch(IN_4);
+
+	while(true) {
+		while(Sensor(IN_4) == 0){ // Wait for button press
+			// use sensor readings as offsets
+			s1o = Sensor(IN_1);
+			s2o = Sensor(IN_2);
+			// display current sensor readings
+			ClearScreen();
+			TextOut(0,LCD_LINE1,NumToStr(s1o));
+			TextOut(0,LCD_LINE2,NumToStr(s2o));
+		};
+		// The button got pressed
+		// Let's play some music and start following the line
+		StartTask(music);
+		do {
+			// offset free sensor readings
+			int s1 = Sensor(IN_1)-s1o;
+			int s2 = Sensor(IN_2)-s2o;
+			// the difference between the sensor readings
+			int d = s1-s2;
+			// scale and limit the difference to use it as turns ratio
+			int t = max(-100,min(d*10*sf,100));
+			// update motor speed
+			OnFwdSync(OUT_AB, spd, t);
+			// display current sensor readings
+			ClearScreen();
+			TextOut(0,LCD_LINE1,NumToStr(s1));
+			TextOut(0,LCD_LINE2,NumToStr(s2));
+		} while(true);
+		// the following should be never executed
+		Off(OUT_AB);
+	}
+}
+task main(){
+	Precedes(movement);
+}
